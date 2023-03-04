@@ -22,6 +22,8 @@ struct SpaceTravel
 	static void printInteraction();
 	static int main(int argc, char** argv);
 	
+	static Actor* getCloseObstacle(const Spacecraft& spacecraft);
+
 	static float getDeltaTime() 
 	{
 		return deltaTime;

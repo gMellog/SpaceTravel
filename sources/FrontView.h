@@ -11,7 +11,8 @@ struct FrontView
 		:
 		viewportStart{ pViewportStart },
 		viewportSize(pViewportSize),
-		spacecraft{}
+		spacecraft{},
+		collideAsteroid{}
 	{
 	}
 
@@ -22,4 +23,5 @@ private:
 	Vector viewportStart;
 	Vector viewportSize;
 	Spacecraft* spacecraft;
+	Actor* collideAsteroid;
 };

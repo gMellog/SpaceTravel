@@ -18,13 +18,18 @@ std::vector<std::pair<bool, std::size_t>> Spacecraft::getInitVKeyMappings() cons
 
 void Spacecraft::init()
 {
-     pathfinder.init();
-
-    SpaceTravel::staticViewport.addSetupCameraLocListener(
-    [this]()
+    SpaceTravel::staticViewport.addNoGoldenAsteroidsListener(
+        [this]()
     {
-        const auto pos = SpaceTravel::staticViewport.getCameraEyePos();
-        pathfinder.moveTo(pos);
+        pathfinder.addOnMoveToEndDelegate(
+        [this]
+        ()
+        {
+            moveTime = false;
+            stopMoveTo = true;
+        });
+
+        pathfinder.moveTo(startPos, true);
     });
 }
 
@@ -60,9 +65,30 @@ float Spacecraft::getHeight() const noexcept
 
 void Spacecraft::keyInput(int key, int x, int y)
 {
-    if (key == ' ')
+    if (key == ' ' && !stopMoveTo)
     {
         moveTime = !moveTime;
+        
+        if(moveTime)
+        {
+            if(transform.translation != stopPos)
+            {
+                pathfinder = MoveTo(this);
+            }
+
+            SpaceTravel::staticViewport.addSetupCameraLocListener(
+            [this, keyPressed = true]() mutable
+            {
+                const auto pos = SpaceTravel::staticViewport.getCameraEyePos();
+                
+                pathfinder.moveTo(pos, keyPressed);
+                keyPressed = false;
+            });
+        }
+        else 
+        {
+            stopPos = transform.translation;
+        }
     }
 }
 

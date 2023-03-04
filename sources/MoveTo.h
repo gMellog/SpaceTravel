@@ -73,14 +73,14 @@ struct MoveTo
 	explicit MoveTo(Spacecraft* pSpacecraft);
 
 	void init();
-	void moveTo(const Vector& newMoveToLoc);
+	void moveTo(const Vector& newMoveToLoc, bool startAtGrid);
 
 	void toggleMovement();
 	void tick();
 
-	void addOnInitedDelegate(const std::function<void()>& pOnInitedDelegate)
+	void addOnMoveToEndDelegate(const std::function<void()>& pOnMoveToEndDelegate)
 	{
-		onInitedDelegate = pOnInitedDelegate;
+		onMoveToEndDelegate = pOnMoveToEndDelegate;
 	}
 
 private:
@@ -104,6 +104,8 @@ private:
 	float getMoveAngle(bool xMove) const noexcept;
 	bool isPos(float v) const noexcept;
 
+	Transform getSpacecraftTransform() const noexcept;
+
 	Spacecraft* spacecraft;
 	Vector moveToLoc;
 	Vector moveX;
@@ -124,6 +126,6 @@ private:
 	bool minusZ;
 	
 	mutable bool didntEvenTry;
-	std::function<void()> onInitedDelegate;
+	std::function<void()> onMoveToEndDelegate;
 	//There should be some delegate that will tell that we've reach a destination
 };

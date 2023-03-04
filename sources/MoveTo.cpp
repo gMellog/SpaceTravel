@@ -31,11 +31,7 @@ MoveTo::MoveTo(Spacecraft* pSpacecraft)
 
 void MoveTo::init()
 {
-    const auto startGridPoint = getCloseObstacle();
-    auto newTransform = spacecraft->getTransform();
 
-    newTransform.translation = Vector{ startGridPoint.X + moveX.X, 0.f, newTransform.translation.Z };
-    spacecraft->setTransform(newTransform);
 }
 
 Vector MoveTo::getForwardVector(const Transform& spacecraftTransform) const noexcept
@@ -46,9 +42,18 @@ Vector MoveTo::getForwardVector(const Transform& spacecraftTransform) const noex
     return normalize({ -sinf(shipRot.angle * M_PI / 180.0), 0.f, -cosf(shipRot.angle * M_PI / 180.0) });
 }
 
-void MoveTo::moveTo(const Vector& newMoveToLoc)
+void MoveTo::moveTo(const Vector& newMoveToLoc, bool startAtGrid)
  {
     moveToLoc = newMoveToLoc;
+
+    if(startAtGrid)
+    {
+        const auto startGridPoint = getCloseObstacle();
+        auto newTransform = spacecraft->getTransform();
+
+        movePoints.push_back({ startGridPoint.X + moveX.X, 0.f, newTransform.translation.Z });
+    }
+
     movePoints = calcPoints();
 
     auto currTransform = spacecraft->getTransform();
@@ -91,6 +96,8 @@ void MoveTo::moveTo(const Vector& newMoveToLoc)
         currTask = transformTasks[0].get();
         currTask->init();
     }
+    
+    movePoints.clear();
 }
 
 void MoveTo::toggleMovement()
@@ -117,6 +124,9 @@ void MoveTo::tick()
                     spacecraft->notifyCollide(Tags::GoldenAsteroidTag);
                     goldenAster->die();
                 }
+
+                if(onMoveToEndDelegate)
+                    onMoveToEndDelegate();
            }
            else 
            {
@@ -131,7 +141,7 @@ void MoveTo::tick()
 std::vector<Vector> MoveTo::calcPoints()
 {   
     std::vector<Vector> r;
-    auto shipTransform = spacecraft->getTransform();
+    auto shipTransform = getSpacecraftTransform();
     const auto& start = shipTransform.translation;
     fullPath = moveToLoc - start;
 
@@ -151,6 +161,20 @@ std::vector<Vector> MoveTo::calcPoints()
         {
             r.push_back(shipTransform.translation + moveZ);
         }
+    }
+
+    return r;
+}
+
+Transform MoveTo::getSpacecraftTransform() const noexcept
+{
+    Transform r;
+    
+    r = spacecraft->getTransform();
+    
+    if(!movePoints.empty())
+    {
+        r.translation = movePoints[0];
     }
 
     return r;
@@ -340,31 +364,7 @@ Vector MoveTo::getCloseGridPos() const noexcept
 
 Vector MoveTo::getCloseObstacle() const noexcept
 {
-    Actor* closeActor{};
-    const auto spacecraftLoc = spacecraft->getTransform().translation;
-
-    for(auto& actor : SpaceTravel::actors)
-    {
-        for(const auto& tag : actor->tags)
-        {
-            if(tag == Tags::AsteroidTag)
-            {
-                const auto actorLoc = actor->getTransform().translation;
-                
-                if(closeActor != nullptr)
-                {
-                    const auto closeActorLoc = closeActor->getTransform().translation;
-                    if((spacecraftLoc - closeActorLoc).length() > (spacecraftLoc - actorLoc).length())
-                        closeActor = actor.get();
-                }
-                else
-                {
-                    closeActor = actor.get();
-                }
-            }
-        }
-    }
-
+    auto closeActor = SpaceTravel::getCloseObstacle(*spacecraft);
     return closeActor != nullptr ? closeActor->getTransform().translation : Vector();
 }
 

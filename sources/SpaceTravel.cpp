@@ -85,6 +85,8 @@
 		const auto columns = 8;
 		const auto rows = 6;
 
+		int goldAsteroids = 0;
+
 		for (int i = 0; i < columns; i++)
 			for (int j = 0; j < rows; j++)
 			{
@@ -105,7 +107,7 @@
 					asteroid = createGoldenAsteroid({ pos });
 				else 
 					asteroid = createSimpleAsteroid({ pos });
-				
+
 				actors.push_back(std::move(asteroid));
 			}
 	}
@@ -127,6 +129,36 @@
 		initActors();
 		tp = std::chrono::system_clock::now();
 		animate(1);
+	}
+
+	Actor* SpaceTravel::getCloseObstacle(const Spacecraft& spacecraft)
+	{
+		Actor* closeActor{};
+		const auto spacecraftLoc = spacecraft.getTransform().translation;
+
+		for(auto& actor : SpaceTravel::actors)
+		{
+			for(const auto& tag : actor->tags)
+			{
+				if(tag == Tags::AsteroidTag)
+				{
+					const auto actorLoc = actor->getTransform().translation;
+					
+					if(closeActor != nullptr)
+					{
+						const auto closeActorLoc = closeActor->getTransform().translation;
+						if((spacecraftLoc - closeActorLoc).length() > (spacecraftLoc - actorLoc).length())
+							closeActor = actor.get();
+					}
+					else
+					{
+						closeActor = actor.get();
+					}
+				}
+			}
+		}
+
+		return closeActor;
 	}
 
 	void SpaceTravel::resize(int w, int h)
@@ -177,7 +209,7 @@
 	void SpaceTravel::printInteraction()
 	{
 		std::cout << "Interaction:" << std::endl;
-		std::cout << "Press space bar to force auto collect of golden asteroids(For now it only works at the beggining,\nso don't get confused it won't work in other location)" << std::endl;
+		std::cout << "Press space bar to force auto collect of golden asteroids" << std::endl;
 		std::cout << "Or you could use arrow keys to move around" << std::endl;
 	}
 

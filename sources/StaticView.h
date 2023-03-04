@@ -16,7 +16,8 @@ struct StaticView
 		viewportSize(pViewportSize),
 		spacecraft{},
 		upLoc{ -29.0, 20.0, -30.0 },
-		boundToAsteroid{}
+		boundToAsteroid{},
+		focusCameraOnInitialPos{}
 	{
 	}
 
@@ -31,6 +32,11 @@ struct StaticView
 		setupCameraListener = cameraListener;
 		if(boundToAsteroid)
 			setupCameraListener();
+	}
+
+	void addNoGoldenAsteroidsListener(const std::function<void()>& pNoGoldenAsteroidsListener)
+	{
+		noGoldenAsteroidsListener = pNoGoldenAsteroidsListener;
 	}
 
 	const GoldenAsteroid* getTrackAsteroid() const noexcept
@@ -53,5 +59,8 @@ private:
 	Vector cameraEye;
 	Vector prevCameraEye;
 	std::function<void()> setupCameraListener;
+	std::function<void()> noGoldenAsteroidsListener;
 	GoldenAsteroid* boundToAsteroid;
+
+	bool focusCameraOnInitialPos;
 };

@@ -28,7 +28,9 @@ struct Spacecraft : Actor
 			getInitVKeyMappings()
 	},
 	pathfinder{ this },
-	pathfinderInited{}
+	startPos{transform.translation},
+	stopPos{transform.translation},
+	stopMoveTo{}
 	{
 
 		glNewList(spacecraftList, GL_COMPILE);
@@ -87,7 +89,11 @@ struct Spacecraft : Actor
 		std::vector< std::pair<bool, std::size_t> > vKeyMappings;
 
 		MoveTo pathfinder;
-		bool pathfinderInited;
+		bool playerUsedKeyboard;
+		Vector startPos;
+		Vector stopPos;
+
+		bool stopMoveTo;
 };
 
 

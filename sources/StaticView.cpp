@@ -42,7 +42,7 @@ Vector StaticView::getAmountOfSteps() const noexcept
 
 void StaticView::setupCamera()
 {   
-    if(!boundToAsteroid)
+    if(!boundToAsteroid && !focusCameraOnInitialPos)
     {
         boundToAsteroid = SpaceTravel::getActorPointer<GoldenAsteroid>();
         if(boundToAsteroid != nullptr)
@@ -65,6 +65,11 @@ void StaticView::setupCamera()
         else
         {
             cameraEye = {10.f, 20.f, 0.f};
+            
+            if(noGoldenAsteroidsListener)
+                noGoldenAsteroidsListener();
+
+            focusCameraOnInitialPos = true;
         }
     }
 
