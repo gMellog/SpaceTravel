@@ -43,13 +43,19 @@ struct StaticView
 	{
 		return boundToAsteroid;
 	}
+	
+	void addMessage(const DrawMessage& drawMessage);
+
+	Vector getUpLoc() const noexcept
+	{
+		return upLoc;
+	}
 
 private:
 
 	Vector getAmountOfSteps() const noexcept;
 	void setupCamera();
 	void drawMessages();
-	void addMessage(const DrawMessage& drawMessage);
 
 	Vector viewportStart;
 	Vector viewportSize;

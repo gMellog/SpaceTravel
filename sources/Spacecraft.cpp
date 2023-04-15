@@ -35,6 +35,8 @@ void Spacecraft::init()
 
 void Spacecraft::tick(float deltaTime)
 {
+	Actor::tick(deltaTime);
+
     if(moveTime)
     {   
         pathfinder.tick();
@@ -122,7 +124,6 @@ void Spacecraft::keyInput(int key, int x, int y)
             if (rot.angle > 360.0) rot.angle -= 360.0;
             if (rot.angle < 0.0) rot.angle += 360.0;
 
-        
             const auto aster = asteroidCollision<SimpleAsteroid>(newTransform);
             collided = aster != nullptr;
 
@@ -130,7 +131,7 @@ void Spacecraft::keyInput(int key, int x, int y)
             {
                 auto goldenAster = asteroidCollision<GoldenAsteroid>(newTransform);
 
-                if (goldenAster != nullptr)
+                if (goldenAster != nullptr && !goldenAster->isDied())
                 {
                     notifyCollide(Tags::GoldenAsteroidTag);
                     goldenAster->die();
@@ -210,10 +211,30 @@ void Spacecraft::keyInput(int key, int x, int y)
         glPopMatrix();
     }
 
+	Area Spacecraft::getSpacecraftArea() const noexcept
+    {
+        auto loc = transform.translation;
+
+        Area r;
+        
+        const auto offsetX = height * 5;
+        const auto offsetZ = height * 5;
+
+        r.SW = {loc.X - offsetX, 0.f, loc.Z};
+        r.NW = {loc.X - offsetX, 0.f, loc.Z - offsetZ};
+        r.NE = {loc.X + offsetX, 0.f, loc.Z - offsetZ};
+        r.SE = {loc.X + offsetX, 0.f, loc.Z};
+
+        return r;
+    }
+
     template<typename T>
     T* Spacecraft::asteroidCollision(const Transform & newTransform) const noexcept
-    {
-        for (const auto& actor : SpaceTravel::actors)
+    {   
+        const auto area = getSpacecraftArea();
+        const auto closeActors = SpaceTravel::getActorsCloseToArea(area);
+
+        for (const auto& actor : closeActors)
         {
             for (const auto& tag : actor->tags)
             {

@@ -2,15 +2,77 @@
 #include "SimpleAsteroid.h"
 #include "GoldenAsteroid.h"
 
-    void SpaceTravel::tick()
+	void drawCubeAt(const Vector& loc, int size)
+	{
+		glPushMatrix();
+		glColor3f(1.f, 0.f, 0.f);
+		
+		glTranslatef(loc.X, -15.f, loc.Z);
+		
+		glScalef(1.f, 0.f, 1.f);
+		glutSolidCube(size);
+		
+		glPopMatrix();
+	}
+
+	void SpaceTravel::drawDebugFrustum()
+	{	
+		const auto X = spacecraft->getTransform().translation.X;
+		const auto Z = spacecraft->getTransform().translation.Z;
+		const auto angle = spacecraft->getTransform().rotation.angle;
+
+		drawCubeAt({static_cast<float>(X - 10 * sinf((M_PI / 180.0) * angle) - 7.072 * sinf((M_PI / 180.0) * (45.0 + angle))),
+				-15.f,
+				static_cast<float>(Z - 10 * cosf((M_PI / 180.0) * angle) - 7.072 * cos((M_PI / 180.0) * (45.0 + angle)))}, 1.f);
+
+		drawCubeAt({static_cast<float>(X - 10 * sinf((M_PI / 180.0) * angle) + 7.072 * sinf((M_PI / 180.0) * (45.0 - angle))),
+				-15.f,
+				static_cast<float>(Z - 10 * cosf((M_PI / 180.0) * angle) - 7.072 * cos((M_PI / 180.0) * (45.0 - angle)))}, 1.f);
+
+		drawCubeAt({
+				static_cast<float>(X - 10 * sinf((M_PI / 180.0) * angle) - 100 * sinf((M_PI / 180.0) * (45.0 + angle))),
+				0.f,
+				static_cast<float>(Z - 10 * cosf((M_PI / 180.0) * angle) - 100 * cosf((M_PI / 180.0) * (45.0 + angle))),
+			}, 1.f);
+
+		drawCubeAt({
+				static_cast<float>(X - 10 * sinf((M_PI / 180.0) * angle) + 100 * sinf((M_PI / 180.0) * (45.0 - angle))),
+				0.f,
+				static_cast<float>(Z - 10 * cosf((M_PI / 180.0) * angle) - 100 * cosf((M_PI / 180.0) * (45.0 - angle))),
+			}, 1.f);
+		
+	}
+
+	void SpaceTravel::drawDebugInitialSquares()
+	{
+		const float initSize = (asterCols >= asterRows) ? 
+			(asterCols - 1) * XOffset + 12.0 : 
+			(asterRows - 1) * XOffset + 12.0;
+
+		drawCubeAt({-initSize / 2.0, 0.f, ZOffset}, 5.f);
+		drawCubeAt({-initSize / 2.0, 0.f, ZOffset - initSize / 2.0}, 5.f);
+		drawCubeAt({0, 0.f, ZOffset - initSize / 2.0}, 5.f);
+		drawCubeAt({0, 0.f, ZOffset}, 5.f);
+	}
+
+    void SpaceTravel::tick(const Area& area)
 	{
 		std::vector<Actor*> diedActors;
-		
+
+		if(frustumCulling)
+		{
+			quadtree.drawObjects(area);
+			spacecraft->tick(deltaTime);
+		}
+
 		for (auto& actor : actors)
 		{
 			if (!actor->isDied())
 			{
-				actor->tick(deltaTime);
+				if(!frustumCulling)
+				{
+					actor->tick(deltaTime);
+				}
 			}
 			else 
 			{
@@ -18,22 +80,31 @@
 			}
 		}
 
-		auto dieFirstIt = std::remove_if(std::begin(actors), std::end(actors),
-			[&diedActors]
-		(std::unique_ptr<Actor>& actor)
-			{
-				for (auto it = std::begin(diedActors); it != std::end(diedActors); ++it)
-				{
-					if (*it == actor.get())
-					{
-						diedActors.erase(it);
-						return true;
-					}
-				}
+		for(auto& actor: actors)
+		{	
+			actor->resetTick();
+		}
 
-				return false;
-			});
-		actors.erase(dieFirstIt, std::end(actors));
+		if(!diedActors.empty())
+		{
+			auto dieFirstIt = std::remove_if(std::begin(actors), std::end(actors),
+				[&diedActors]
+			(std::unique_ptr<Actor>& actor)
+				{
+					for (auto it = std::begin(diedActors); it != std::end(diedActors); ++it)
+					{
+						if (*it == actor.get())
+						{
+							diedActors.erase(it);
+							return true;
+						}
+					}
+
+					return false;
+				});
+
+			actors.erase(dieFirstIt, std::end(actors));
+		}
 	}
 
 	void SpaceTravel::drawSeparateLine()
@@ -51,6 +122,59 @@
 		glColor3f(1.f, 1.f, 1.f);
 		glDrawArrays(GL_LINES, 0, v.size());
 		glDisableClientState(GL_VERTEX_ARRAY);
+	}	
+
+	Area getAreaForView(float X, float Z, float angle, float R, float frustumVertex1, float frustumVertex2)
+	{	
+		const auto v1 = frustumVertex1;
+		const auto v2 = frustumVertex2;
+
+		return{
+			{
+				X - R * sinf(angle) - frustumVertex1 * sinf(angle + M_PI / 4),
+				0.f,
+				Z - R * cosf(angle) - frustumVertex1 * cosf(angle + M_PI / 4),
+			},
+			
+			{
+				X - R * sinf(angle) - frustumVertex2 * sinf(angle + M_PI / 4),
+				0.f,
+				Z - R * cosf(angle) - frustumVertex2 * cosf(angle + M_PI / 4),
+			},
+
+			{
+				X - R * sinf(angle) - frustumVertex2 * sinf(angle - M_PI / 4),
+				0.f,
+				Z - R * cosf(angle) - frustumVertex2 * cosf(angle - M_PI / 4),
+			},
+			
+			{
+				X - R * sin(angle) - frustumVertex1 * sin(angle - M_PI / 4),
+				0.f,
+				Z - R * cos(angle) - frustumVertex1 * cos(angle - M_PI / 4)
+			}
+		};
+	}
+
+	Area SpaceTravel::getFrontArea()
+	{
+		const auto X = spacecraft->getTransform().translation.X;
+		const auto Z = spacecraft->getTransform().translation.Z;
+		const auto angle = toRadians(spacecraft->getTransform().rotation.angle);
+		
+		return getAreaForView(X, Z, angle, 10.f, 7.072, 353.3);
+	}
+
+	Area SpaceTravel::getStaticArea()
+	{
+		const auto loc = staticViewport.getCameraEyePos();
+		const auto spacecraftLoc = spacecraft->getTransform().translation;
+		const auto X = loc.X;
+		const auto Z = loc.Z;
+		const auto diff = spacecraftLoc - loc;
+        const auto angle = getXZAngle(diff) - M_PI_2;
+		
+		return getAreaForView(X, Z, angle, 10.f, 7.072, 450);
 	}
 
 	void SpaceTravel::drawScene(void)
@@ -65,11 +189,14 @@
 		tp = system_clock::now();
 
 		frontViewport.draw();
-		tick();
+
+		tick(getFrontArea());
+
 		drawSeparateLine();
 
 		staticViewport.draw();
-		tick();
+
+		tick(getStaticArea());
 
 		glutSwapBuffers();
 	}
@@ -82,8 +209,8 @@
 
 	void SpaceTravel::createAsteroids()
 	{
-		const auto columns = 8;
-		const auto rows = 6;
+		const auto columns = asterCols;
+		const auto rows = asterRows;
 
 		int goldAsteroids = 0;
 
@@ -114,8 +241,9 @@
 
 	void SpaceTravel::initActors()
 	{		
-		auto spacecraft = createSpacecraft();
-		actors.push_back(std::move(spacecraft));
+		auto spacecraftObj = createSpacecraft();
+		spacecraft = spacecraftObj.get();
+		actors.push_back(std::move(spacecraftObj));
 		createAsteroids();
 
 		for(const auto& actor : actors)
@@ -126,7 +254,15 @@
 	{
 		glClearColor(.0, .0, .0, .0);
 		glEnable(GL_DEPTH_TEST);
+
 		initActors();
+
+		const float initSize = (asterCols >= asterRows) ? 
+			(asterCols) * XOffset + 6.0 : 
+			(asterRows) * std::abs(ZOffset) + 6.0;
+		
+		quadtree.init(-initSize / 2.0, ZOffset, initSize);
+
 		tp = std::chrono::system_clock::now();
 		animate(1);
 	}
@@ -182,35 +318,41 @@
 		case 27:
 			exit(0);
 			break;
+		case 'C':
+		case 'c':
+			frustumCulling = !frustumCulling;
+			staticViewport.addMessage(createFrustumCullingMessage( staticViewport.getUpLoc(), frustumCulling));
+			break;
+		case ' ':
+			return;
 		default:
 			break;
 		}
 
-		auto& spacecraft = getActorRef<Spacecraft>();
-		spacecraft.keyInput(key, x, y);
+		spacecraft->keyInput(key, x, y);
 	}
 
 	void SpaceTravel::specialFunc(int key, int x, int y)
-	{
-		auto& spacecraft = getActorRef<Spacecraft>();
-		spacecraft.specialKeyInput(key, x, y);
-
+	{	
+		spacecraft->specialKeyInput(key, x, y);
 		glutPostRedisplay();
 	}
 
 	void SpaceTravel::specialUpFunc(int key, int x, int y)
 	{
-		auto& spacecraft = getActorRef<Spacecraft>();
-		spacecraft.specialUpFunc(key, x, y);
-
+		spacecraft->specialUpFunc(key, x, y);
 		glutPostRedisplay();
 	}
 
 	void SpaceTravel::printInteraction()
 	{
+		std::cout << "Wait until huge scene will load, it'll take a bit" << std::endl;
+		std::cout << "Probably it will lagging, if so then work around with frustum culling so" << std::endl;
+
 		std::cout << "Interaction:" << std::endl;
-		std::cout << "Press space bar to force auto collect of golden asteroids" << std::endl;
+		std::cout << "Press space bar to force auto collect of golden asteroids(for now it doesn't work)" << std::endl;
 		std::cout << "Or you could use arrow keys to move around" << std::endl;
+		std::cout << "Turn on/off frustum culling by pressing C(English version) button" << std::endl;
 	}
 
 	int SpaceTravel::main(int argc, char** argv)
@@ -240,14 +382,37 @@
 		return 0;
 	}
 
-std::chrono::system_clock::time_point SpaceTravel::tp{};
-float SpaceTravel::deltaTime{};
-float SpaceTravel::XOffset{40.f};
-float SpaceTravel::ZOffset{-40.f};
-int SpaceTravel::animationPeriod{};
-int SpaceTravel::width{800};
-int SpaceTravel::height{400};
+	int SpaceTravel::getMinStoreActors()
+    {
+        return minStoreActors;
+    }
 
-StaticView SpaceTravel::staticViewport{ {SpaceTravel::getScreenWidth() / 2.f, 0.f}, {SpaceTravel::getScreenWidth() / 2.f, SpaceTravel::getScreenHeight() * 1.f} };
-FrontView SpaceTravel::frontViewport{ {0.f, 0.f}, {SpaceTravel::getScreenWidth() / 2.f, SpaceTravel::getScreenHeight() * 1.f} };
-std::vector<std::unique_ptr<Actor>> SpaceTravel::actors{};
+	int SpaceTravel::getMaxQuadtreeHeight()
+	{
+		return maxQuadtreeHeight;
+	}
+
+	std::vector<Actor*> SpaceTravel::getActorsCloseToArea(const Area& area)
+	{
+		return quadtree.getActorsCloseToArea(area);
+	}
+
+	Quadtree SpaceTravel::quadtree{};
+	Spacecraft* SpaceTravel::spacecraft{};
+	std::chrono::system_clock::time_point SpaceTravel::tp{};
+	float SpaceTravel::deltaTime{};
+	float SpaceTravel::XOffset{40.f};
+	float SpaceTravel::ZOffset{-40.f};
+	int SpaceTravel::animationPeriod{};
+	int SpaceTravel::width{800};
+	int SpaceTravel::height{400};
+
+	int SpaceTravel::asterRows{100};
+	int SpaceTravel::asterCols{100};
+	int SpaceTravel::minStoreActors{12};
+	int SpaceTravel::maxQuadtreeHeight{3};
+	bool SpaceTravel::frustumCulling{};
+
+	StaticView SpaceTravel::staticViewport{ {SpaceTravel::getScreenWidth() / 2.f, 0.f}, {SpaceTravel::getScreenWidth() / 2.f, SpaceTravel::getScreenHeight() * 1.f} };
+	FrontView SpaceTravel::frontViewport{ {0.f, 0.f}, {SpaceTravel::getScreenWidth() / 2.f, SpaceTravel::getScreenHeight() * 1.f} };
+	std::vector<std::unique_ptr<Actor>> SpaceTravel::actors{};

@@ -65,6 +65,14 @@
 	float Z;
 	};
 
+		struct Area
+	{
+		Vector SW;
+		Vector NW;
+		Vector NE;
+		Vector SE;
+	};
+
 	inline Vector normalize(const Vector& v)
 	{
 	return { v.X / v.length(), v.Y / v.length(), v.Z / v.length() };
@@ -89,6 +97,15 @@
 	
 	}
 
+	inline Vector getUnitVector(const Vector& v)
+	{
+		return {
+			v.X / v.length(),
+			v.Y / v.length(),
+			v.Z / v.length()
+		};
+	}
+
 	template<typename T>
 	inline T clamp(T min, T max, T val)
 	{
@@ -104,6 +121,55 @@
 	{
 	os << "X: " << v.X << " Y: " << v.Y << " Z: " << v.Z;
 	return os;
+	}
+
+	inline float toDegrees(float radians)
+	{
+		return 180 / M_PI * radians;
+	}
+
+	inline float toRadians(float degrees)
+	{
+		return M_PI / 180 * degrees;
+	}
+
+	inline float getAngleBasedOnQuadrant(const Vector& uv)
+	{
+		float r{};
+		const auto firstQuadrantAngle = acos(std::abs(uv.X));
+
+		const auto X = uv.X;
+		const auto Z = -uv.Z;
+
+		if((X >= 0) && (Z >= 0))
+		{
+			r = firstQuadrantAngle;
+		}
+		else if((X <= 0) && (Z >= 0))
+		{
+			r = M_PI - firstQuadrantAngle;
+		}
+		else if((X <= 0) && (Z <= 0))
+		{
+			r = M_PI + firstQuadrantAngle;
+		}
+		else if((X >= 0) && (Z <= 0))
+		{	
+			r = 2 * M_PI - firstQuadrantAngle;
+		}
+		else
+		{
+			std::cerr << "Unhandled case in getAngleBasedOnQuadrant()" << std::endl;
+			std::cerr << "uv: " << uv << std::endl;
+		}
+
+		return r;
+	}
+
+	inline float getXZAngle(const Vector& dir)
+	{
+		const auto uv = getUnitVector(dir);
+		return getAngleBasedOnQuadrant(uv);
 	}
 
 	struct Color

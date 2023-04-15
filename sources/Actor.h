@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 #include "Utils.h"
 
 struct Actor
@@ -19,11 +20,22 @@ struct Actor
 	virtual void setTransform(const Transform& newTransform) = 0;
 	virtual Transform getTransform() const = 0;
 	virtual void die();
-		
+
+	void resetTick()
+	{
+		tickCalled = false;
+	}	
+
 	bool isDied() const noexcept;
+	bool isTickCalled() const noexcept
+	{
+		return tickCalled;
+	}
 
 	std::vector<std::string> tags;
+	
 private:
 	bool died;
+	bool tickCalled;
 };
 	

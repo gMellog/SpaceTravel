@@ -44,6 +44,7 @@ void SimpleAsteroid::setRandomDrawFigureFunc()
 
 void SimpleAsteroid::tick(float deltaTime)
 {
+	Actor::tick(deltaTime);
 	draw();
 }
 

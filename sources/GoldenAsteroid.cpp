@@ -12,6 +12,7 @@ GoldenAsteroid::GoldenAsteroid(const Transform& pTransform)
 
 void GoldenAsteroid::tick(float deltaTime)
 {
+    Actor::tick(deltaTime);
     if (t > (2.0 * M_PI))
         t -= M_PI;
 
@@ -66,16 +67,12 @@ std::unique_ptr<GoldenAsteroid> createGoldenAsteroid(const Transform& transform)
 
 void GoldenAsteroid::onDie(const std::function<void()>& pOnDieDelegate)
 {
-    onDieDelegate = pOnDieDelegate;
+    dieListeners.push_back(pOnDieDelegate);
 }
 
 void GoldenAsteroid::die()
 {
-    if(onDieDelegate)
-    {   
-        onDieDelegate();
-    }
-
+    notifyDieListeners();
     Actor::die();
 }
 

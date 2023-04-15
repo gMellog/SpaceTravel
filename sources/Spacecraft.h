@@ -69,8 +69,10 @@ struct Spacecraft : Actor
 	void notifyCollide(const std::string & collideTag);
 	
 	private:
+		
+		Area getSpacecraftArea() const noexcept;
+		
 		void draw();	
-
 
 		Transform transform;
 		unsigned int spacecraftList;

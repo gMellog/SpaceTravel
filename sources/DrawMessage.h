@@ -34,3 +34,4 @@ private:
 
 DrawMessage createCollideMessage(const Vector& loc);
 DrawMessage createGoldMessage(const Vector& loc);
+DrawMessage createFrustumCullingMessage(const Vector& loc, bool enabledState);

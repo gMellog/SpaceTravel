@@ -29,7 +29,13 @@ private:
 	Transform transform;
 	float t;
 
-	std::function<void()> onDieDelegate;
+	std::vector<std::function<void()>> dieListeners;
+
+	void notifyDieListeners()
+	{
+		for(const auto& listener : dieListeners)
+			listener();
+	}
 };
 
 

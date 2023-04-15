@@ -37,3 +37,10 @@ DrawMessage createGoldMessage(const Vector& loc)
 {
 	return DrawMessage("You've got a gold!", loc, Color{ 1.f, 215.f / 255.f, 0.f }, 2.f);
 }
+
+DrawMessage createFrustumCullingMessage(const Vector &loc, bool enabledState)
+{   
+    return enabledState ? 
+    DrawMessage("Frustum culling turned on!", loc, Color{ 1.f, 1.f, 1.f }, 2.f) :
+    DrawMessage("Frustum culling turned off!",loc, Color{ 1.f, 1.f, 1.f }, 2.f);
+}

@@ -5,10 +5,11 @@
 #include "Tags.h"
 #include "FrontView.h"
 #include "StaticView.h"
+#include "Quadtree.h"
 
 struct SpaceTravel
 {
-	static void tick();
+	static void tick(const Area& area);
 	static void drawSeparateLine();
 	static void drawScene();
 	static void animate(int value);
@@ -85,8 +86,20 @@ struct SpaceTravel
 	static StaticView staticViewport;
 	static FrontView frontViewport;
 
+	static int getMinStoreActors();
+	static int getMaxQuadtreeHeight();
+
+	static std::vector<Actor*> getActorsCloseToArea(const Area& area);
+
 	private:
 
+	static Area getFrontArea();
+	static Area getStaticArea();
+	static void drawDebugFrustum();
+	static void drawDebugInitialSquares();
+
+	static Quadtree quadtree;
+	static Spacecraft* spacecraft;
 	static std::chrono::system_clock::time_point tp;
 	static float deltaTime;
 	static float XOffset;
@@ -94,4 +107,10 @@ struct SpaceTravel
 	static int animationPeriod;
 	static int width;
 	static int height;
-};
+	static int asterRows;
+	static int asterCols;
+	static int minStoreActors;
+	static int maxQuadtreeHeight;
+	static bool frustumCulling;
+
+	};
